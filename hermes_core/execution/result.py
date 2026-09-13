@@ -12,6 +12,7 @@ class ExecutionResultStatus(str, Enum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     BLOCKED = "blocked"
+    APPROVAL_REQUIRED = "approval_required"
     CANCELLED = "cancelled"
     UNKNOWN = "unknown"
 
