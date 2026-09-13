@@ -16,7 +16,7 @@ def _request(capability: str = "filesystem.read") -> ExecutionRequest:
     return ExecutionRequest(capability, "user", _project())
 
 
-def test_denied_request_never_reaches_executor() -> None:
+def test_approval_required_system_config_never_reaches_executor() -> None:
     called: list[str] = []
     gateway = ExecutionGateway(
         SafetyGovernor(),
@@ -28,8 +28,9 @@ def test_denied_request_never_reaches_executor() -> None:
         GovernorContext(autonomy_level=10),
     )
 
-    assert result.status is ExecutionResultStatus.BLOCKED
+    assert result.status is ExecutionResultStatus.APPROVAL_REQUIRED
     assert called == []
+    assert result.metadata["governance_decision"] == "require_approval"
 
 
 def test_approval_required_request_never_reaches_executor() -> None:
