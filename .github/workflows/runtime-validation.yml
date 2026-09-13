@@ -1,0 +1,63 @@
+name: Runtime architecture validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    name: Runtime contracts and safety plane
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Runtime architecture validation intentionally installs only the
+          # dependencies needed by the runtime-specific tests. The complete
+          # repository suite is owned by the official CI test workflow, which
+          # uses the optimized 96-core/per-file runner.
+          python -m pip install -e '.[dev]'
+
+      - name: Compile fork runtime
+        run: python -m compileall -q hermes_core
+
+      - name: Import smoke test
+        run: |
+          python - <<'PY'
+          import importlib
+          import pkgutil
+          import hermes_core
+
+          discovered = []
+          for module in pkgutil.walk_packages(hermes_core.__path__, hermes_core.__name__ + '.'):
+              name = module.name
+              importlib.import_module(name)
+              discovered.append(name)
+
+          assert discovered, 'hermes_core must contain importable runtime modules'
+          print(f'hermes_core import smoke test: OK ({len(discovered)} modules)')
+          PY
+
+      - name: Runtime tests
+        run: python -m pytest -q tests/test_runtime_*.py tests/test_safety_governor.py
+
+      - name: Dependency direction guard
+        run: python scripts/ci/check_runtime_dependency_direction.py
