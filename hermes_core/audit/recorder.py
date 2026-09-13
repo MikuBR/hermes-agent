@@ -1,1 +1,1 @@
-"""Runtime 6 changes are maintained in a dedicated follow-up branch."""
+"""Runtime 6 is being kept separate from the Runtime 5 validation branch."""
