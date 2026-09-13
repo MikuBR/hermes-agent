@@ -100,6 +100,10 @@ jobs:
           source .venv/bin/activate
           scripts/run_tests.sh --files '${{ matrix.slice.files }}'
         env:
+          # Standard GitHub-hosted runners are small compared with the former
+          # 96-core lane. Keep nested per-file concurrency bounded so pytest
+          # subprocesses do not oversubscribe CPU/RAM and create false flakes.
+          HERMES_TEST_WORKERS: 4
           OPENROUTER_API_KEY: ""
           OPENAI_API_KEY: ""
           NOUS_API_KEY: ""
