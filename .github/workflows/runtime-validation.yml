@@ -30,7 +30,11 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e '.[dev]'
+          # The upstream full suite exercises ACP and messaging/gateway modules,
+          # which are intentionally optional in the production install. Keep
+          # them opt-in in the package while making the validation environment
+          # complete enough to collect and execute the full suite.
+          python -m pip install -e '.[dev,acp,messaging]'
 
       - name: Compile fork runtime
         run: python -m compileall -q hermes_core
