@@ -93,3 +93,12 @@ def test_graph_admission_rejects_token_overrun():
     node = orchestrator.plan("too much", budget={"tokens": 11})[0]
     with pytest.raises(RuntimeError, match="token"):
         orchestrator.admit_graph((node,))
+
+
+def test_graph_admission_rejects_excessive_fanout():
+    orchestrator = AgentOrchestrator(OrchestrationPolicy(max_children=1))
+    root = orchestrator.plan("root")[0]
+    left = replace(orchestrator.plan("left")[0], dependencies=(root.task.task_id,))
+    right = replace(orchestrator.plan("right")[0], dependencies=(root.task.task_id,))
+    with pytest.raises(RuntimeError, match="child"):
+        orchestrator.admit_graph((root, left, right))
