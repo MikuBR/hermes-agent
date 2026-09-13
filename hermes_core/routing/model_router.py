@@ -49,7 +49,15 @@ class ModelRouter:
         if not pool:
             raise LookupError("no model satisfies routing policy")
 
-        pool.sort(key=lambda item: (-item[0][0], item[1].provider, item[1].model))
+        preferred = {provider: index for index, provider in enumerate(request.preferred_providers)}
+        pool.sort(
+            key=lambda item: (
+                -item[0][0],
+                preferred.get(item[1].provider, len(preferred)),
+                item[1].provider,
+                item[1].model,
+            )
+        )
         score, best = pool[0]
         confidence = score[0]
         fallbacks = tuple(candidate.model for _, candidate in pool[1:4])
@@ -79,8 +87,6 @@ class ModelRouter:
         policy = 1.0
         if r.free_first and not c.free:
             policy = 0.0
-        if c.provider in r.preferred_providers:
-            policy = min(1.0, policy + 0.25)
 
         parts = {
             "quality": c.quality,
