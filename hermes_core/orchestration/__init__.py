@@ -1,3 +1,10 @@
 """Bounded task-graph orchestration primitives."""
-from .orchestrator import AgentOrchestrator, OrchestrationPolicy
-__all__ = ["AgentOrchestrator", "OrchestrationPolicy"]
+
+from .orchestrator import AdmissionSnapshot, AgentOrchestrator, OrchestrationPolicy, TaskNode
+
+__all__ = [
+    "AdmissionSnapshot",
+    "AgentOrchestrator",
+    "OrchestrationPolicy",
+    "TaskNode",
+]
