@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import replace
 from datetime import datetime, timezone
 from threading import Lock
 from typing import Any, Mapping
@@ -34,9 +33,8 @@ def _safe_value(value: Any, *, depth: int = 0) -> str:
         pairs = []
         for key, item in list(value.items())[:32]:
             key_text = str(key)
-            pairs.append(
-                f"{key_text}={'[REDACTED]' if _is_secret_key(key_text) else _safe_value(item, depth=depth + 1)}"
-            )
+            rendered = "[REDACTED]" if _is_secret_key(key_text) else _safe_value(item, depth=depth + 1)
+            pairs.append(f"{key_text}={rendered}")
         return "{" + ", ".join(pairs) + "}"
     if isinstance(value, (list, tuple, set, frozenset)):
         return "[" + ", ".join(_safe_value(item, depth=depth + 1) for item in list(value)[:32]) + "]"
