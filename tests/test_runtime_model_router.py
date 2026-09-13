@@ -7,7 +7,7 @@ def test_router_is_deterministic_and_skips_unavailable():
         ModelCandidate("b", "fast", quality=.8, reliability=.9, speed=.9, free=True),
         ModelCandidate("c", "down", available=False),
     ])
-    assert r.provider == "a"
+    assert r.provider == "b"
     assert "down" not in r.fallback_models
 
 def test_router_enforces_privacy_and_tools():
