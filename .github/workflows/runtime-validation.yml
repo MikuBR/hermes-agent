@@ -1,0 +1,68 @@
+name: Runtime architecture validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    name: Runtime contracts and safety plane
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+
+      - name: Compile fork runtime
+        run: python -m compileall -q hermes_core
+
+      - name: Import smoke test
+        run: |
+          python - <<'PY'
+          import hermes_core
+          from hermes_core.context import ProjectContextResolver
+          from hermes_core.cognition import CognitiveRouter
+          from hermes_core.governance import SafetyGovernor
+          from hermes_core.routing import ModelRouter
+          from hermes_core.orchestration import AgentOrchestrator
+          from hermes_core.execution import ExecutionRequest, ExecutionResult
+          from hermes_core.verification import Verifier
+          from hermes_core.audit import AuditRecorder
+          from hermes_core.rollback import RollbackManager
+          from hermes_core.memory import LearningStore
+          from hermes_core.compatibility import CompatibilityAnalyzer
+          from hermes_core.self_improvement import SelfImprovement
+          assert all((ProjectContextResolver, CognitiveRouter, SafetyGovernor, ModelRouter,
+                      AgentOrchestrator, ExecutionRequest, ExecutionResult, Verifier,
+                      AuditRecorder, RollbackManager, LearningStore,
+                      CompatibilityAnalyzer, SelfImprovement))
+          print('hermes_core import smoke test: OK')
+          PY
+
+      - name: Runtime tests
+        run: python -m pytest -q tests/test_runtime_*.py
+
+      - name: Dependency direction guard
+        run: python scripts/ci/check_runtime_dependency_direction.py
+
+      - name: Full Python test suite
+        run: python -m pytest -q
