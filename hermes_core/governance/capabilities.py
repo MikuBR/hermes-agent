@@ -3,14 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 
-
-class CapabilityRisk(str, Enum):
-    LOW = "low"
-    MODERATE = "moderate"
-    HIGH = "high"
-    CRITICAL = "critical"
+from hermes_core.contracts import CapabilityRisk
 
 
 @dataclass(frozen=True)
@@ -18,7 +12,7 @@ class CapabilityPolicy:
     """Static metadata; authorization remains a runtime decision."""
 
     name: str
-    risk: CapabilityRisk = CapabilityRisk.MODERATE
+    risk: CapabilityRisk = CapabilityRisk.MEDIUM
     reversible: bool = True
     external_side_effect: bool = False
     sensitive_data: bool = False
@@ -35,7 +29,7 @@ DEFAULT_CAPABILITIES: dict[str, CapabilityPolicy] = {
         "filesystem.read", risk=CapabilityRisk.LOW, reversible=True
     ),
     "filesystem.write": CapabilityPolicy(
-        "filesystem.write", risk=CapabilityRisk.MODERATE, reversible=True
+        "filesystem.write", risk=CapabilityRisk.MEDIUM, reversible=True
     ),
     "filesystem.delete": CapabilityPolicy(
         "filesystem.delete", risk=CapabilityRisk.HIGH, reversible=False
