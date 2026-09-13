@@ -102,6 +102,13 @@ class AgentOrchestrator:
         if len(ordered) > self.policy.max_tasks:
             raise RuntimeError("task budget exceeded")
 
+        children: dict[str, int] = {node.task.task_id: 0 for node in ordered}
+        for node in ordered:
+            for dependency in node.dependencies:
+                children[dependency] += 1
+                if children[dependency] > self.policy.max_children:
+                    raise RuntimeError("child budget exceeded")
+
         depths: dict[str, int] = {}
         estimated_tokens = 0
         estimated_context = 0
