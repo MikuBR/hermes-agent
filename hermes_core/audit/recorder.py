@@ -8,16 +8,7 @@ from typing import Any, Mapping
 
 from hermes_core.contracts import AuditEvent, ExecutionStatus
 
-
-_SECRET_KEY_PARTS = (
-    "token",
-    "password",
-    "secret",
-    "api_key",
-    "apikey",
-    "authorization",
-    "cookie",
-)
+_SECRET_KEY_PARTS = ("token", "password", "secret", "api_key", "apikey", "authorization", "cookie")
 _MAX_TEXT = 1000
 
 
