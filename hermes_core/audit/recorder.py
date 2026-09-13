@@ -1,1 +1,1 @@
-"""Runtime 6 work moved out; file intentionally reduced before ref reset."""
+"""Runtime 6 changes are maintained in a dedicated follow-up branch."""
