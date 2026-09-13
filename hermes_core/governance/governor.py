@@ -102,7 +102,7 @@ class SafetyGovernor:
                 risk.level,
             )
 
-        if risk.level is CapabilityRisk.MODERATE:
+        if risk.level is CapabilityRisk.MEDIUM:
             return GovernanceResult(
                 GovernanceDecision.ALLOW_WITH_AUDIT,
                 policy.name,
