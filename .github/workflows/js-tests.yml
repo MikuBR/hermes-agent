@@ -43,7 +43,9 @@ jobs:
         with:
           command: npm ci
 
-      # The workspace checker discovers every package/check:* script and runs
-      # the checks concurrently within the job. An empty discovery is an error.
+      # Standard runners have limited CPU/RAM compared with the large runner
+      # previously used by this required lane. Keep workspace checks bounded
+      # so desktop/UI test processes do not compete with each other and turn
+      # resource pressure into nondeterministic failures.
       - name: Run all workspace checks
-        run: node .github/scripts/run-workspace-checks.mjs
+        run: node .github/scripts/run-workspace-checks.mjs --concurrency 2
