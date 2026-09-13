@@ -33,8 +33,11 @@ class ProjectContextResolver:
     ) -> ProjectContext:
         """Resolve identity using explicit/session/Git evidence first.
 
-        Advisory signals never override authoritative signals. Conflicting
-        authoritative identities produce an explicit ambiguous context.
+        Advisory signals never override authoritative signals. Explicit project
+        identity is the strongest semantic override; a conflicting persisted
+        session identity remains ambiguous because it may represent a different
+        project. Git/worktree paths provide workspace-boundary evidence and do
+        not invalidate an explicit project selection.
         """
         normalized_cwd = self._normalize_path(cwd)
         normalized_git = self._normalize_path(git_root)
@@ -56,8 +59,24 @@ class ProjectContextResolver:
             if v and v.strip()
         )
 
-        authoritative_ids = {e.value for e in evidence if e.authoritative}
-        ambiguous = len(authoritative_ids) > 1
+        explicit = explicit_project_id.strip() if explicit_project_id else None
+        session = session_project_id.strip() if session_project_id else None
+
+        # An explicit user/project selection outranks workspace inference. A
+        # session mismatch is still unsafe because it represents persisted
+        # semantic state, so surface ambiguity rather than silently mixing it.
+        ambiguous = bool(explicit and session and explicit != session)
+        if explicit is None:
+            subordinate_authoritative = {
+                value
+                for value in (
+                    session,
+                    self._identity_from_path(normalized_git),
+                    self._identity_from_path(normalized_worktree),
+                )
+                if value
+            }
+            ambiguous = len(subordinate_authoritative) > 1
 
         if explicit_project_id:
             project_id = explicit_project_id.strip()
