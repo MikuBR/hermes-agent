@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from hermes_core.execution import ExecutionRequest
+from hermes_core.execution.request import ExecutionRequest
 
 from .capabilities import CapabilityPolicy, CapabilityRisk, DEFAULT_CAPABILITIES
 from .risk import assess
