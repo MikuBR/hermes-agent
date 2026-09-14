@@ -20,4 +20,6 @@ This phase remains dormant until a later guarded rollout wires verification and 
 
 Runtime 6 is considered validated only when its focused regression suite passes on the branch and the repository CI workflow executes against the PR merge ref. Passing tests on a local or unrelated ref are not sufficient evidence for integration.
 
+CI-sensitive changes may legitimately leave the aggregate workflow red until the repository's explicit `ci-reviewed` human gate is satisfied. That gate is not automated by Runtime 6 and must never be bypassed by implementation or test changes.
+
 The phase must remain non-invasive: no legacy executor wiring, no automatic deployment, and no bypass of the repository's human review gate.
