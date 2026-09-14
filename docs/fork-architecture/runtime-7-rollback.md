@@ -17,4 +17,4 @@ No automatic checkpoints, Execution Gateway wiring, destructive restoration poli
 
 ## Validation gate
 
-The phase requires focused rollback regression tests and repository CI on the PR merge ref. The legacy executor and human review gate remain untouched.
+The phase requires focused rollback regression tests and repository CI on the PR merge ref. CI infrastructure fixes must be validated on the current merge ref rather than relying on an older queued run. The legacy executor and human review gate remain untouched.
