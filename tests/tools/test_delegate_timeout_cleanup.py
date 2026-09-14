@@ -35,7 +35,10 @@ class _SlowUnwindingChild:
         # Model the real child turn's finally path: it still performs session
         # activity/SQLite cleanup after the parent requests interruption.
         self.unwinding.set()
-        assert self.allow_finish.wait(timeout=2)
+        # Keep the worker alive long enough for the parent-side assertion even
+        # on contended standard CI runners. The test controls actual completion
+        # with allow_finish, so this remains bounded if the test itself fails.
+        assert self.allow_finish.wait(timeout=10)
         self.finished.set()
         return {
             "final_response": "",
