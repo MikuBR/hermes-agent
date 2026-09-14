@@ -84,6 +84,9 @@ class MemoryLearningManager:
         observed_project_ids: Iterable[str] = (),
     ) -> LearningCandidate:
         """Accept an externally-produced session-end candidate without promoting it."""
+        projects = list(dict.fromkeys(p for p in observed_project_ids if p))
+        if project_id and project_id not in projects:
+            projects.insert(0, project_id)
         candidate = LearningCandidate(
             key=key,
             content=content,
@@ -93,7 +96,7 @@ class MemoryLearningManager:
             session_id=session_id,
             supporting_evidence=tuple(_bounded_strings(evidence, 32, 1024)),
             confidence=confidence,
-            observed_project_ids=tuple(dict.fromkeys(p for p in observed_project_ids if p))[:16],
+            observed_project_ids=tuple(projects[:16]),
         )
         self.store.put_candidate(candidate)
         return candidate
@@ -154,7 +157,8 @@ class MemoryLearningManager:
         if target_scope in (MemoryScope.GLOBAL, MemoryScope.USER):
             if not allow_generalization:
                 return LearningDecision(False, "generalization requires explicit authorization", candidate_id)
-            if candidate.source_scope is MemoryScope.PROJECT:
+            has_project_provenance = candidate.source_scope is MemoryScope.PROJECT or candidate.project_id is not None
+            if has_project_provenance:
                 if len(set(candidate.observed_project_ids)) < self.GENERALIZED_MIN_PROJECTS:
                     return LearningDecision(False, "project learning needs evidence from at least two projects", candidate_id)
                 if len(candidate.supporting_evidence) < self.GENERALIZED_MIN_SUPPORT:
