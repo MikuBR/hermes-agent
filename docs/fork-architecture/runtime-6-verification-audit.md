@@ -15,3 +15,9 @@ Audit records use the canonical `AuditEvent` contract. The recorder is bounded a
 ## Integration boundary
 
 This phase remains dormant until a later guarded rollout wires verification and audit into the Execution Gateway. The existing executor remains untouched in this phase.
+
+## Validation gate
+
+Runtime 6 is considered validated only when its focused regression suite passes on the branch and the repository CI workflow executes against the PR merge ref. Passing tests on a local or unrelated ref are not sufficient evidence for integration.
+
+The phase must remain non-invasive: no legacy executor wiring, no automatic deployment, and no bypass of the repository's human review gate.
