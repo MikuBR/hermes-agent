@@ -123,6 +123,19 @@ def test_quickstart_runs_all_three_legs(client, monkeypatch, tmp_path):
     Each leg is asserted by its observable call, in order."""
     calls: list[str] = []
 
+    # CI runners do not expose the same GPU/VRAM profile as a developer desktop.
+    # Make catalog selection deterministic so this test validates quickstart's
+    # sequencing rather than whichever hardware GitHub happened to assign.
+    from hermes_cli.local_runtime.estimator import HardwareBudget
+    import hermes_cli.web_routers.local_models as lm
+
+    gib = 1 << 30
+    budget = HardwareBudget(
+        usable_vram_bytes=14 * gib, total_device_bytes=16 * gib,
+        ram_available_bytes=64 * gib, uma=False,
+    )
+    monkeypatch.setattr(lm.hardware, "probe_budget", lambda **kw: budget)
+
     # Supply the same supported backend to preflight and the stubbed install;
     # host auto-detection may select CUDA without a published Linux archive.
     from hermes_cli.config import load_config, save_config
@@ -183,6 +196,18 @@ def test_quickstart_skips_satisfied_legs(client, monkeypatch):
     """Runtime present and model already staged: the response says so and
     the job goes straight to activation."""
     calls: list[str] = []
+
+    # Make automatic recommendation stable on GitHub-hosted runners rather than
+    # coupling the test to the host's actual GPU/memory profile.
+    from hermes_cli.local_runtime.estimator import HardwareBudget
+    import hermes_cli.web_routers.local_models as lm
+
+    gib = 1 << 30
+    budget = HardwareBudget(
+        usable_vram_bytes=14 * gib, total_device_bytes=16 * gib,
+        ram_available_bytes=64 * gib, uma=False,
+    )
+    monkeypatch.setattr(lm.hardware, "probe_budget", lambda **kw: budget)
 
     monkeypatch.setattr(
         "hermes_cli.local_runtime.binaries.installed_tags", lambda: ["b10362"])

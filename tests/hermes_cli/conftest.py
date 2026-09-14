@@ -85,3 +85,24 @@ def isolated_update_runtime(monkeypatch, tmp_path, request):
     monkeypatch.setattr(update_cmd_fleet, "_restart_macos_launchd_gateways", lambda *a, **k: None)
     monkeypatch.setattr(update_inventory, "collect_runtime_inventory", lambda: None)
     monkeypatch.setattr(update_receipt, "collect_fleet_versions", lambda *a, **k: [])
+
+
+@pytest.fixture(autouse=True)
+def _deterministic_quickstart_selection(request, monkeypatch):
+    """Keep quickstart sequencing tests independent of hosted-runner hardware."""
+    if request.node.name not in {
+        "test_quickstart_runs_all_three_legs",
+        "test_quickstart_skips_satisfied_legs",
+    }:
+        return
+
+    import hermes_cli.web_routers.local_models as lm
+    from hermes_cli.local_runtime.catalog import VariantChoice
+
+    monkeypatch.setattr(
+        lm.catalog,
+        "select_variant",
+        lambda entry, budget: VariantChoice(
+            variant=entry.variants[0], zero_spill=True, reason_key="best-fits"
+        ),
+    )
