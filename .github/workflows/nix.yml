@@ -55,7 +55,7 @@ jobs:
             tarball-ttl = 3600
 
       - name: Restore and save the Nix store
-        uses: nix-community/cache-nix-action@7df9577f107fe9357f9df03efb73ab90386fccae # v7
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
         with:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/**', 'pyproject.toml', 'uv.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
