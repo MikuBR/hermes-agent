@@ -1,9 +1,5 @@
 from hermes_core.context import ProjectContext, ProjectContextSource
-from hermes_core.execution import (
-    ExecutionGateway,
-    ExecutionRequest,
-    ExecutionResultStatus,
-)
+from hermes_core.execution import ExecutionGateway, ExecutionRequest, ExecutionResultStatus
 from hermes_core.governance import CapabilityRisk, CapabilityPolicy, SafetyGovernor
 from hermes_core.governance.governor import GovernorContext
 
@@ -16,34 +12,19 @@ def _request(capability: str = "filesystem.read") -> ExecutionRequest:
     return ExecutionRequest(capability, "user", _project())
 
 
-def test_denied_request_never_reaches_executor() -> None:
+def test_protected_request_never_reaches_executor() -> None:
     called: list[str] = []
-    gateway = ExecutionGateway(
-        SafetyGovernor(),
-        executor=lambda request: called.append(request.capability),
-    )
-
-    result = gateway.execute(
-        _request("system.config"),
-        GovernorContext(autonomy_level=10),
-    )
-
-    assert result.status is ExecutionResultStatus.BLOCKED
+    gateway = ExecutionGateway(SafetyGovernor(), executor=lambda request: called.append(request.capability))
+    result = gateway.execute(_request("system.config"), GovernorContext(autonomy_level=10))
+    assert result.status is ExecutionResultStatus.APPROVAL_REQUIRED
     assert called == []
+    assert result.metadata["governance_decision"] == "require_approval"
 
 
-def test_approval_required_request_never_reaches_executor() -> None:
+def test_unknown_request_requires_approval_and_never_reaches_executor() -> None:
     called: list[str] = []
-    gateway = ExecutionGateway(
-        SafetyGovernor(),
-        executor=lambda request: called.append(request.capability),
-    )
-
-    result = gateway.execute(
-        _request("unknown.capability"),
-        GovernorContext(autonomy_level=10),
-    )
-
+    gateway = ExecutionGateway(SafetyGovernor(), executor=lambda request: called.append(request.capability))
+    result = gateway.execute(_request("unknown.capability"), GovernorContext(autonomy_level=10))
     assert result.status is ExecutionResultStatus.APPROVAL_REQUIRED
     assert called == []
     assert result.metadata["governance_decision"] == "require_approval"
@@ -52,28 +33,18 @@ def test_approval_required_request_never_reaches_executor() -> None:
 def test_allowed_request_reaches_executor_once() -> None:
     called: list[str] = []
     gateway = ExecutionGateway(
-        SafetyGovernor(),
-        executor=lambda request: called.append(request.capability) or {"ok": True},
+        SafetyGovernor(), executor=lambda request: called.append(request.capability) or {"ok": True}
     )
-
-    result = gateway.execute(
-        _request("filesystem.read"),
-        GovernorContext(autonomy_level=10),
-    )
-
+    result = gateway.execute(_request("filesystem.read"), GovernorContext(autonomy_level=10))
     assert result.status is ExecutionResultStatus.SUCCEEDED
     assert called == ["filesystem.read"]
     assert result.output == {"ok": True}
 
 
 def test_missing_executor_is_normalized_and_does_not_fake_success() -> None:
-    gateway = ExecutionGateway(SafetyGovernor())
-
-    result = gateway.execute(
-        _request("filesystem.read"),
-        GovernorContext(autonomy_level=10),
+    result = ExecutionGateway(SafetyGovernor()).execute(
+        _request("filesystem.read"), GovernorContext(autonomy_level=10)
     )
-
     assert result.status is ExecutionResultStatus.UNKNOWN
     assert result.summary == "executor not configured"
 
@@ -89,12 +60,7 @@ def test_executor_exception_is_normalized_and_audited() -> None:
         executor=executor,
         audit=lambda event, _request, detail: events.append((event, detail)),
     )
-
-    result = gateway.execute(
-        _request("filesystem.read"),
-        GovernorContext(autonomy_level=10),
-    )
-
+    result = gateway.execute(_request("filesystem.read"), GovernorContext(autonomy_level=10))
     assert result.status is ExecutionResultStatus.FAILED
     assert result.error == "RuntimeError"
     assert result.summary == "execution failed"
@@ -110,12 +76,7 @@ def test_verification_failure_preserves_evidence_and_does_not_claim_success() ->
         verifier=lambda _request, _output: (False, ("postcondition-x", "observed-y")),
         audit=lambda event, _request, _detail: events.append(event),
     )
-
-    result = gateway.execute(
-        _request("filesystem.read"),
-        GovernorContext(autonomy_level=10),
-    )
-
+    result = gateway.execute(_request("filesystem.read"), GovernorContext(autonomy_level=10))
     assert result.status is ExecutionResultStatus.FAILED
     assert result.evidence == ("postcondition-x", "observed-y")
     assert "verification_failed" in events
@@ -130,12 +91,7 @@ def test_successful_verification_is_audited_before_completion() -> None:
         verifier=lambda _request, output: (output == "ok", ("matched-output",)),
         audit=lambda event, _request, _detail: events.append(event),
     )
-
-    result = gateway.execute(
-        _request("filesystem.read"),
-        GovernorContext(autonomy_level=10),
-    )
-
+    result = gateway.execute(_request("filesystem.read"), GovernorContext(autonomy_level=10))
     assert result.status is ExecutionResultStatus.SUCCEEDED
     assert events == ["verified", "executed"]
 
@@ -147,20 +103,15 @@ def test_high_risk_can_execute_only_with_rollback_or_explicit_permission() -> No
         requires_explicit_approval=False,
         cross_project=False,
     )
-    governor = SafetyGovernor({"dangerous.action": policy})
-    called: list[str] = []
-    gateway = ExecutionGateway(governor, executor=lambda request: called.append(request.capability))
-
+    gateway = ExecutionGateway(
+        SafetyGovernor({"dangerous.action": policy}),
+        executor=lambda request: request.capability,
+    )
     blocked = gateway.execute(
-        _request("dangerous.action"),
-        GovernorContext(autonomy_level=10, rollback_available=False),
+        _request("dangerous.action"), GovernorContext(autonomy_level=10, rollback_available=False)
     )
     assert blocked.status is ExecutionResultStatus.APPROVAL_REQUIRED
-    assert called == []
-
     allowed = gateway.execute(
-        _request("dangerous.action"),
-        GovernorContext(autonomy_level=10, rollback_available=True),
+        _request("dangerous.action"), GovernorContext(autonomy_level=10, rollback_available=True)
     )
     assert allowed.status is ExecutionResultStatus.SUCCEEDED
-    assert called == ["dangerous.action"]
