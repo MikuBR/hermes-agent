@@ -32,12 +32,7 @@ class _SlowUnwindingChild:
     def run_conversation(self, **_kwargs):
         self.started.set()
         assert self.interrupted.wait(timeout=1)
-        # Model the real child turn's finally path: it still performs session
-        # activity/SQLite cleanup after the parent requests interruption.
         self.unwinding.set()
-        # Keep the worker alive long enough for the parent-side assertion even
-        # on contended standard CI runners. The test controls actual completion
-        # with allow_finish, so this remains bounded if the test itself fails.
         assert self.allow_finish.wait(timeout=10)
         self.finished.set()
         return {
@@ -60,6 +55,14 @@ class _SlowUnwindingChild:
         self.closed.set()
 
 
+class _NoopHeartbeat:
+    def start(self):
+        return None
+
+    def stop(self):
+        return None
+
+
 def test_timeout_does_not_close_child_while_worker_is_unwinding(monkeypatch):
     child = _SlowUnwindingChild()
     parent = SimpleNamespace(
@@ -70,6 +73,7 @@ def test_timeout_does_not_close_child_while_worker_is_unwinding(monkeypatch):
     )
     monkeypatch.setattr(delegate_tool, "_get_child_timeout", lambda: 0.5)
     monkeypatch.setattr(delegate_tool, "_get_worktree_isolation", lambda: False)
+    monkeypatch.setattr(delegate_tool, "_start_heartbeat", lambda *_args: _NoopHeartbeat())
 
     result = delegate_tool._run_single_child(
         task_index=0,
